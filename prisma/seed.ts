@@ -17,7 +17,6 @@ async function main() {
       role: 'ADMIN',
     },
   })
-
   // Create Sample Buyer
   const buyerUser = await prisma.user.upsert({
     where: { email: 'buyer@example.com' },
@@ -30,7 +29,6 @@ async function main() {
       buyerProfile: {
         create: {
           phone: '555-0123',
-          address: '123 Main St, Anytown, USA'
         }
       }
     },

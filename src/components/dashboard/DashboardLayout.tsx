@@ -18,7 +18,8 @@ import {
   Star,
   MessageSquare,
   ChevronDown,
-  LogOut
+  LogOut,
+  ShoppingCart
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -31,6 +32,7 @@ const navigationConfig = {
   BUYER: [
     { href: '/dashboard/buyer', label: 'Overview', icon: Home },
     { href: '/dashboard/buyer/orders', label: 'My Orders', icon: ShoppingBag },
+    { href: '/dashboard/buyer/cart', label: 'Shopping Cart', icon: ShoppingCart },
     { href: '/dashboard/buyer/wishlist', label: 'Wishlist', icon: Heart },
     { href: '/dashboard/buyer/addresses', label: 'Addresses', icon: MapPin },
     { href: '/dashboard/buyer/reviews', label: 'My Reviews', icon: Star },

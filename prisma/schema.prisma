@@ -40,9 +40,13 @@ model BuyerProfile {
   userId     String   @unique
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   phone      String?
-  address    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  // Relations
+  addresses    Address[]
+  cartItems    CartItem[]
+  wishlistItems WishlistItem[]
 
   @@map("buyer_profiles")
 }
@@ -76,8 +80,61 @@ model DriverProfile {
   updatedAt    DateTime @updatedAt
 
   deliveries Delivery[]
-
   @@map("driver_profiles")
+}
+
+// Address model for buyer address management
+model Address {
+  id          String   @id @default(cuid())
+  buyerId     String
+  type        String   @default("HOME") // HOME, WORK, OTHER
+  firstName   String
+  lastName    String
+  company     String?
+  address1    String
+  address2    String?
+  city        String
+  state       String
+  zipCode     String
+  country     String   @default("US")
+  phone       String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  buyer       BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+// Cart model for shopping cart functionality
+model CartItem {
+  id          String   @id @default(cuid())
+  buyerId     String
+  productId   String
+  quantity    Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  buyer       BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, productId])
+  @@map("cart_items")
+}
+
+// Wishlist model for saved items
+model WishlistItem {
+  id          String   @id @default(cuid())
+  buyerId     String
+  productId   String
+  createdAt   DateTime @default(now())
+
+  buyer       BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, productId])
+  @@map("wishlist_items")
 }
 
 // Category model
@@ -109,11 +166,12 @@ model Product {
   stock        Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
   category     Category      @relation(fields: [categoryId], references: [id])
   seller       SellerProfile @relation(fields: [sellerId], references: [id])
   orderItems   OrderItem[]
   reviews      Review[]
+  cartItems    CartItem[]
+  wishlistItems WishlistItem[]
 
   @@map("products")
 }

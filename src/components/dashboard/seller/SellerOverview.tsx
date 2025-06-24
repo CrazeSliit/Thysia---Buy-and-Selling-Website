@@ -30,41 +30,69 @@ function StatsLoading() {
 
 // Quick stats component
 async function QuickStats({ userId }: { userId: string }) {
-  // For now, we'll show placeholder data
-  // TODO: Fetch real data from API
+  // Fetch real data from API
+  let sellerStats;
+  try {
+    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3002'}/api/seller/stats`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      sellerStats = data.stats;
+    } else {
+      throw new Error('Failed to fetch stats');
+    }
+  } catch (error) {
+    console.error('Error fetching seller stats:', error);
+    // Fallback to placeholder data if API fails
+    sellerStats = {
+      totalRevenue: 0,
+      revenueGrowth: 0,
+      totalProducts: 0,
+      thisMonthOrders: 0,
+      orderCountGrowth: 0,
+      conversionRate: 0,
+      totalItemsSold: 0,
+      itemsGrowth: 0
+    };
+  }
+
   const stats = [
     {
       title: 'Total Revenue',
-      value: '$12,450',
-      change: '+12.5%',
-      changeType: 'positive' as const,
+      value: `$${sellerStats.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: `${sellerStats.revenueGrowth >= 0 ? '+' : ''}${sellerStats.revenueGrowth}%`,
+      changeType: sellerStats.revenueGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: DollarSign,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
       title: 'Products Listed',
-      value: '23',
-      change: '+3',
-      changeType: 'positive' as const,
+      value: sellerStats.totalProducts.toString(),
+      change: `${sellerStats.totalProducts} total`,
+      changeType: 'neutral' as const,
       icon: Package,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
       title: 'Orders This Month',
-      value: '45',
-      change: '+8.2%',
-      changeType: 'positive' as const,
+      value: sellerStats.thisMonthOrders.toString(),
+      change: `${sellerStats.orderCountGrowth >= 0 ? '+' : ''}${sellerStats.orderCountGrowth}%`,
+      changeType: sellerStats.orderCountGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: ShoppingBag,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
     {
-      title: 'Conversion Rate',
-      value: '3.2%',
-      change: '+0.5%',
-      changeType: 'positive' as const,
+      title: 'Items Sold Total',
+      value: sellerStats.totalItemsSold.toString(),
+      change: `${sellerStats.itemsGrowth >= 0 ? '+' : ''}${sellerStats.itemsGrowth}%`,
+      changeType: sellerStats.itemsGrowth >= 0 ? 'positive' as const : 'negative' as const,
       icon: TrendingUp,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
@@ -79,12 +107,12 @@ async function QuickStats({ userId }: { userId: string }) {
           <div key={stat.title} className="bg-white p-6 rounded-lg shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-secondary-600">{stat.title}</p>
-                <p className="text-2xl font-bold text-secondary-900">{stat.value}</p>
+                <p className="text-sm font-medium text-secondary-600">{stat.title}</p>                <p className="text-2xl font-bold text-secondary-900">{stat.value}</p>
                 <p className={`text-sm ${
-                  stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                  stat.changeType === 'positive' ? 'text-green-600' : 
+                  stat.changeType === 'negative' ? 'text-red-600' : 'text-gray-600'
                 }`}>
-                  {stat.change} from last month
+                  {stat.changeType === 'neutral' ? stat.change : `${stat.change} from last month`}
                 </p>
               </div>
               <div className={`p-3 rounded-lg ${stat.bgColor}`}>
