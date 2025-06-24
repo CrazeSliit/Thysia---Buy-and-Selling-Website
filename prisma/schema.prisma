@@ -1,0 +1,205 @@
+// Simple SQLite schema for immediate testing
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// User model (simplified)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  role      String   @default("BUYER") // Using String instead of enum for SQLite
+  isActive  Boolean  @default(true)
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Profile relations (simplified)
+  buyerProfile  BuyerProfile?
+  sellerProfile SellerProfile?
+  driverProfile DriverProfile?
+
+  // Relations
+  orders        Order[]
+  reviews       Review[]
+  notifications Notification[]
+  adminLogs     AdminLog[]
+
+  @@map("users")
+}
+
+// Simplified profiles
+model BuyerProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone      String?
+  address    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("buyer_profiles")
+}
+
+model SellerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName String?
+  phone        String?
+  address      String?
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  products Product[]
+
+  @@map("seller_profiles")
+}
+
+model DriverProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone        String?
+  vehicleType  String?
+  licenseNumber String?
+  isVerified   Boolean  @default(false)
+  isAvailable  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  deliveries Delivery[]
+
+  @@map("driver_profiles")
+}
+
+// Category model
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  products    Product[]
+
+  @@map("categories")
+}
+
+// Product model (simplified)
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  price        Float
+  imageUrl     String   // Single image for SQLite
+  categoryId   String
+  sellerId     String
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  stock        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category     Category      @relation(fields: [categoryId], references: [id])
+  seller       SellerProfile @relation(fields: [sellerId], references: [id])
+  orderItems   OrderItem[]
+  reviews      Review[]
+
+  @@map("products")
+}
+
+// Order models (simplified)
+model Order {
+  id          String   @id @default(cuid())
+  buyerId     String
+  status      String   @default("PENDING") // Using String instead of enum
+  total       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  buyer       User        @relation(fields: [buyerId], references: [id])
+  items       OrderItem[]
+  delivery    Delivery?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+// Delivery model (simplified)
+model Delivery {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  driverId   String?
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  order      Order         @relation(fields: [orderId], references: [id])
+  driver     DriverProfile? @relation(fields: [driverId], references: [id])
+
+  @@map("deliveries")
+}
+
+// Review model
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@map("reviews")
+}
+
+// Notification model
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Admin log model
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  createdAt DateTime @default(now())
+
+  admin     User @relation(fields: [adminId], references: [id])
+
+  @@map("admin_logs")
+}
