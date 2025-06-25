@@ -137,12 +137,12 @@ export default function WishlistList() {
       {wishlistData.wishlistItems.map((item) => (
         <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
           <div className="relative">
-            <div className="aspect-w-16 aspect-h-9 relative h-48 w-full overflow-hidden">
-              <Image
+            <div className="aspect-w-16 aspect-h-9 relative h-48 w-full overflow-hidden">              <Image
                 src={item.product.imageUrl || '/placeholder-product.jpg'}
                 alt={item.product.name}
                 fill
                 className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             </div>
             <div className="absolute top-2 right-2">

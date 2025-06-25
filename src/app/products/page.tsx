@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { Star, ShoppingCart } from 'lucide-react'
+import AddToCartButton from '@/components/products/AddToCartButton'
 
 async function getProducts() {
   return await prisma.product.findMany({
@@ -116,12 +117,12 @@ export default async function ProductsPage() {
                   className="card hover:shadow-lg transition-shadow duration-200"
                 >                  {/* Product Image */}
                   <div className="relative aspect-square overflow-hidden rounded-t-lg">
-                    {product.imageUrl ? (
-                      <Image
+                    {product.imageUrl ? (                      <Image
                         src={product.imageUrl}
                         alt={product.name}
                         fill
                         className="object-cover hover:scale-105 transition-transform duration-200"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     ) : (
                       <div className="w-full h-full bg-secondary-200 flex items-center justify-center">
@@ -197,25 +198,29 @@ export default async function ProductsPage() {
                       <span className="text-sm text-secondary-500 ml-1">
                         {averageRating} ({product.reviews.length})
                       </span>
-                    </div>
-
-                    {/* Price */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg font-bold text-primary-600">
-                          ${product.price.toFixed(2)}
-                        </span>                        {hasDiscount && (
-                          <span className="text-sm text-secondary-400 line-through">
-                            $0.00
-                          </span>
-                        )}
+                    </div>                    {/* Price and Add to Cart */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-lg font-bold text-primary-600">
+                            ${product.price.toFixed(2)}
+                          </span>                        {hasDiscount && (
+                            <span className="text-sm text-secondary-400 line-through">
+                              $0.00
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm text-secondary-500">
+                          {product.stock} left
+                        </span>
                       </div>
                       
-                      {product.stock > 0 && (
-                        <button className="text-primary-600 hover:text-primary-700 p-1">
-                          <ShoppingCart className="w-4 h-4" />
-                        </button>
-                      )}
+                      {/* Add to Cart Button */}
+                      <AddToCartButton 
+                        productId={product.id}
+                        stock={product.stock}
+                        isActive={product.isActive}
+                      />
                     </div>
                   </div>
                 </Link>

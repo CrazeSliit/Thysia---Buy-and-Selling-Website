@@ -166,27 +166,57 @@ async function main() {
     where: { userId: buyerUser.id }
   })
 
-  if (buyerProfile && sellerProfile) {
-    // Find a product to order
+  if (buyerProfile && sellerProfile) {    // Find a product to order and create an address first
     const product = await prisma.product.findFirst({
       where: { sellerId: sellerProfile.id }
     })
 
     if (product) {
+      // Create an address for the buyer first
+      const address = await prisma.address.create({
+        data: {
+          buyerId: buyerProfile.id,
+          type: 'HOME',
+          firstName: 'John',
+          lastName: 'Doe',
+          address1: '123 Main St',
+          city: 'New York',
+          state: 'NY',
+          zipCode: '10001',
+          country: 'US',
+          phone: '+1234567890',
+          isDefault: true        }
+      })
+
+      const subtotal = product.price * 2
+      const taxAmount = subtotal * 0.08
+      const shippingCost = 9.99
+      const totalAmount = subtotal + taxAmount + shippingCost
+
       const order = await prisma.order.create({
         data: {
+          orderNumber: `ORD-${Date.now()}-SEED`,
           buyerId: buyerUser.id,
-          status: 'COMPLETED',
-          total: product.price * 2,
-          items: {
+          status: 'DELIVERED',
+          paymentStatus: 'PAID',
+          paymentMethod: 'CREDIT_CARD',
+          subtotal,
+          taxAmount,
+          shippingCost,
+          totalAmount,
+          shippingAddressId: address.id,
+          billingAddressId: address.id,
+          orderItems: {
             create: {
               productId: product.id,
+              sellerId: sellerUser.id, // Use seller's User ID, not SellerProfile ID
               quantity: 2,
-              price: product.price
+              priceAtTime: product.price,
+              totalPrice: product.price * 2
             }
           }
         }
-      })      // Create a delivery for the order
+      })// Create a delivery for the order
       const driverProfile = await prisma.driverProfile.findUnique({
         where: { userId: driverUser.id }
       })

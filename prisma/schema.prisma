@@ -24,12 +24,14 @@ model User {
   buyerProfile  BuyerProfile?
   sellerProfile SellerProfile?
   driverProfile DriverProfile?
-
   // Relations
-  orders        Order[]
-  reviews       Review[]
-  notifications Notification[]
-  adminLogs     AdminLog[]
+  orders           Order[]
+  orderItems       OrderItem[]  // Seller relation for order items
+  reviews          Review[]
+  notifications    Notification[]
+  adminLogs        AdminLog[]
+  messagesSent     Message[] @relation("MessagesSent")
+  messagesReceived Message[] @relation("MessagesReceived")
 
   @@map("users")
 }
@@ -102,7 +104,9 @@ model Address {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  buyer       BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  buyer                 BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  shippingOrders        Order[]      @relation("OrderShippingAddress")
+  billingOrders         Order[]      @relation("OrderBillingAddress")
 
   @@map("addresses")
 }
@@ -176,32 +180,52 @@ model Product {
   @@map("products")
 }
 
-// Order models (simplified)
+// Order models (enhanced for e-commerce)
 model Order {
-  id          String   @id @default(cuid())
-  buyerId     String
-  status      String   @default("PENDING") // Using String instead of enum
-  total       Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  buyer       User        @relation(fields: [buyerId], references: [id])
-  items       OrderItem[]
-  delivery    Delivery?
+  id                String   @id @default(cuid())
+  orderNumber       String   @unique
+  buyerId           String
+  status            String   @default("PENDING") // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
+  paymentStatus     String   @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
+  paymentMethod     String   @default("CREDIT_CARD") // CREDIT_CARD, DEBIT_CARD, PAYPAL, STRIPE
+  
+  // Pricing
+  subtotal          Float
+  taxAmount         Float    @default(0)
+  shippingCost      Float    @default(0)
+  totalAmount       Float
+  
+  // Addresses
+  shippingAddressId String
+  billingAddressId  String
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  buyer             User        @relation(fields: [buyerId], references: [id])
+  orderItems        OrderItem[]
+  shippingAddress   Address     @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddress    Address     @relation("OrderBillingAddress", fields: [billingAddressId], references: [id])
+  delivery          Delivery?
+  messages          Message[]
 
   @@map("orders")
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Float
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  orderId       String
+  productId     String
+  sellerId      String
+  quantity      Int
+  priceAtTime   Float    // Price at the time of order
+  totalPrice    Float    // quantity * priceAtTime
+  createdAt     DateTime @default(now())
 
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product @relation(fields: [productId], references: [id])
+  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product @relation(fields: [productId], references: [id])
+  seller        User    @relation(fields: [sellerId], references: [id])
 
   @@map("order_items")
 }
@@ -260,4 +284,23 @@ model AdminLog {
   admin     User @relation(fields: [adminId], references: [id])
 
   @@map("admin_logs")
+}
+
+// Message model for buyer-seller communication
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  subject    String
+  content    String
+  isRead     Boolean  @default(false)
+  orderId    String?  // Optional order reference
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender     User     @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("MessagesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
 }

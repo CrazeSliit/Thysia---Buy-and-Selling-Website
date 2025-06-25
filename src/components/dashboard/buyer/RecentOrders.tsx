@@ -46,9 +46,8 @@ async function getRecentOrders(userId: string) {
     const orders = await prisma.order.findMany({
       where: {
         buyerId: userId,
-      },
-      include: {
-        items: {
+      },      include: {
+        orderItems: {
           include: {
             product: {
               select: {
@@ -93,11 +92,10 @@ export default async function RecentOrders({ userId }: RecentOrdersProps) {
 
   return (
     <div className="p-6">
-      <div className="space-y-4">
-        {orders.map((order) => {
+      <div className="space-y-4">        {orders.map((order) => {
           const status = statusConfig[order.status as keyof typeof statusConfig] || statusConfig.PENDING
           const StatusIcon = status.icon
-          const firstItem = order.items[0]
+          const firstItem = order.orderItems[0]
 
           return (
             <div key={order.id} className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-secondary-50 transition-colors">
@@ -126,9 +124,8 @@ export default async function RecentOrders({ userId }: RecentOrdersProps) {
                     <StatusIcon className="w-3 h-3 mr-1" />
                     {status.label}
                   </div>
-                </div>
-                <p className="text-sm text-secondary-500">
-                  {order.items.length} item{order.items.length !== 1 ? 's' : ''} • ${order.total.toFixed(2)}
+                </div>                <p className="text-sm text-secondary-500">
+                  {order.orderItems.length} item{order.orderItems.length !== 1 ? 's' : ''} • ${order.totalAmount.toFixed(2)}
                 </p>
                 <p className="text-xs text-secondary-400">
                   {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}

@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react'
+import { Trash2, Plus, Minus, ShoppingBag, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -49,6 +50,8 @@ export default function CartList() {
   const [cartData, setCartData] = useState<CartResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [updatingItem, setUpdatingItem] = useState<string | null>(null)
+  const [checkingOut, setCheckingOut] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     fetchCartItems()
@@ -67,6 +70,75 @@ export default function CartList() {
       toast.error('Failed to load cart items')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCheckout = async () => {
+    if (!cartData || cartData.cartItems.length === 0) {
+      toast.error('Your cart is empty')
+      return
+    }
+
+    setCheckingOut(true)
+    try {
+      // First, get the user's addresses
+      const addressResponse = await fetch('/api/user/addresses')
+      if (!addressResponse.ok) {
+        throw new Error('Failed to fetch addresses')
+      }
+        const addressData = await addressResponse.json()
+      if (!addressData.addresses || addressData.addresses.length === 0) {
+        toast.error('Please add a shipping address before checkout', {
+          description: 'You need at least one address to place an order',
+          action: {
+            label: 'Add Address',
+            onClick: () => router.push('/dashboard/buyer/addresses')
+          }
+        })
+        return
+      }
+
+      // Use the default address or the first available one
+      const defaultAddress = addressData.addresses.find((addr: any) => addr.isDefault) || addressData.addresses[0]
+
+      // Prepare cart items for checkout
+      const checkoutItems = cartData.cartItems.map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price
+      }))
+
+      // Create the order
+      const orderResponse = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cartItems: checkoutItems,
+          shippingAddressId: defaultAddress.id,
+          billingAddressId: defaultAddress.id,
+          paymentMethod: 'CREDIT_CARD'
+        }),
+      })
+
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json()
+        throw new Error(errorData.error || 'Failed to create order')
+      }      const orderData = await orderResponse.json()
+      
+      toast.success('Order placed successfully!', {
+        description: `Order #${orderData.order.orderNumber} for $${orderData.order.totalAmount.toFixed(2)}`,
+      })
+      
+      // Redirect to order details page
+      router.push(`/dashboard/buyer/orders/${orderData.order.id}`)
+      
+    } catch (error) {
+      console.error('Error during checkout:', error)
+      toast.error(error instanceof Error ? error.message : 'Checkout failed. Please try again.')
+    } finally {
+      setCheckingOut(false)
     }
   }
 
@@ -146,6 +218,12 @@ export default function CartList() {
     )
   }
 
+  // Calculate shipping (free shipping over $50)
+  const subtotal = cartData.summary.totalAmount
+  const shippingCost = subtotal > 50 ? 0 : 9.99
+  const tax = subtotal * 0.08 // 8% tax
+  const total = subtotal + shippingCost + tax
+
   return (
     <div className="space-y-6">
       {/* Cart Items */}
@@ -154,12 +232,12 @@ export default function CartList() {
           <Card key={item.id} className="overflow-hidden">
             <CardContent className="p-6">
               <div className="flex items-start space-x-4">
-                <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">
-                  <Image
+                <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">                  <Image
                     src={item.product.imageUrl || '/placeholder-product.jpg'}
                     alt={item.product.name}
                     fill
                     className="object-cover"
+                    sizes="80px"
                   />
                 </div>
                 
@@ -247,8 +325,7 @@ export default function CartList() {
       <Card>
         <CardHeader>
           <CardTitle>Order Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
+        </CardHeader>        <CardContent>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Items ({cartData.summary.totalItems})</span>
@@ -256,19 +333,42 @@ export default function CartList() {
             </div>
             <div className="flex justify-between text-sm">
               <span>Shipping</span>
-              <span>Calculated at checkout</span>
+              <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Tax (8%)</span>
+              <span>${tax.toFixed(2)}</span>
             </div>
             <div className="border-t pt-2">
               <div className="flex justify-between font-medium">
                 <span>Total</span>
-                <span>${cartData.summary.totalAmount.toFixed(2)}</span>
+                <span>${total.toFixed(2)}</span>
               </div>
+              {subtotal < 50 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Add ${(50 - subtotal).toFixed(2)} more for free shipping
+                </p>
+              )}
             </div>
           </div>
-          
-          <div className="mt-6 space-y-3">
-            <Button className="w-full" size="lg">
-              Proceed to Checkout
+            <div className="mt-6 space-y-3">
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={handleCheckout}
+              disabled={checkingOut || !cartData || cartData.cartItems.length === 0}
+            >
+              {checkingOut ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Proceed to Checkout
+                </>
+              )}
             </Button>
             <Link href="/products" className="block">
               <Button variant="outline" className="w-full">

@@ -35,24 +35,18 @@ const navigationConfig = {
     { href: '/dashboard/buyer/cart', label: 'Shopping Cart', icon: ShoppingCart },
     { href: '/dashboard/buyer/wishlist', label: 'Wishlist', icon: Heart },
     { href: '/dashboard/buyer/addresses', label: 'Addresses', icon: MapPin },
-    { href: '/dashboard/buyer/reviews', label: 'My Reviews', icon: Star },
-    { href: '/dashboard/buyer/inbox', label: 'Messages', icon: MessageSquare },
-    { href: '/dashboard/buyer/settings', label: 'Settings', icon: Settings },
+   
   ],
   SELLER: [
     { href: '/dashboard/seller', label: 'Overview', icon: Home },
     { href: '/dashboard/seller/products', label: 'Products', icon: Package },
     { href: '/dashboard/seller/orders', label: 'Orders', icon: ShoppingBag },
-    { href: '/dashboard/seller/earnings', label: 'Earnings', icon: User },
-    { href: '/dashboard/seller/storefront', label: 'Storefront', icon: Settings },
-    { href: '/dashboard/seller/inbox', label: 'Messages', icon: MessageSquare },
     { href: '/dashboard/seller/reports', label: 'Reports', icon: Star },
   ],
   DRIVER: [
     { href: '/dashboard/driver', label: 'Overview', icon: Home },
     { href: '/dashboard/driver/shipments', label: 'Shipments', icon: Truck },
     { href: '/dashboard/driver/earnings', label: 'Earnings', icon: User },
-    { href: '/dashboard/driver/profile', label: 'Profile', icon: Settings },
   ],
   ADMIN: [
     { href: '/dashboard/admin', label: 'Overview', icon: Home },

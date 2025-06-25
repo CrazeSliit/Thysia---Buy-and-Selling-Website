@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { formatDistanceToNow, format } from 'date-fns'
 import { 
   Package, 
@@ -119,11 +119,7 @@ export default function SellerOrdersList({ userId }: SellerOrdersListProps) {
     totalPages: 0
   })
 
-  useEffect(() => {
-    fetchOrders()
-  }, [pagination.page, statusFilter])
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
@@ -149,7 +145,11 @@ export default function SellerOrdersList({ userId }: SellerOrdersListProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [pagination.page, pagination.limit, statusFilter])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {

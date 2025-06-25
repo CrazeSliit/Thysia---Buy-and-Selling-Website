@@ -67,8 +67,7 @@ export default withAuth(
     }
 
     return NextResponse.next()
-  },
-  {
+  },  {
     callbacks: {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
@@ -79,6 +78,11 @@ export default withAuth(
             pathname.startsWith("/products") ||
             pathname.startsWith("/categories") ||
             pathname.startsWith("/api/auth/")) {
+          return true
+        }
+
+        // Allow authenticated API routes if user has token
+        if (pathname.startsWith("/api/") && token) {
           return true
         }
 
@@ -97,7 +101,8 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - api/ (API routes should handle their own auth)
      */
-    "/((?!_next/static|_next/image|favicon.ico|public|api/webhooks).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|api/).*)",
   ],
 }

@@ -53,9 +53,8 @@ async function getSellerOrders(userId: string) {
     }
 
     // Get orders that contain products from this seller
-    const orders = await prisma.order.findMany({
-      where: {
-        items: {
+    const orders = await prisma.order.findMany({      where: {
+        orderItems: {
           some: {
             product: {
               sellerId: sellerProfile.id
@@ -68,9 +67,8 @@ async function getSellerOrders(userId: string) {
           select: {
             name: true,
             email: true
-          }
-        },
-        items: {
+          }        },
+        orderItems: {
           where: {
             product: {
               sellerId: sellerProfile.id
@@ -124,16 +122,15 @@ export default async function RecentOrders({ userId }: RecentOrdersProps) {
         {orders.map((order) => {
           const status = statusConfig[order.status as keyof typeof statusConfig] || statusConfig.PENDING
           const StatusIcon = status.icon
-          const sellerTotal = order.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+          const sellerTotal = order.orderItems.reduce((sum: number, item: any) => sum + (item.quantity * item.priceAtTime), 0)
 
           return (
             <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-secondary-50 transition-colors">
-              <div className="flex items-center space-x-4">
-                <div className="flex-shrink-0">
-                  {order.items[0]?.product?.imageUrl ? (
+              <div className="flex items-center space-x-4">                <div className="flex-shrink-0">
+                  {order.orderItems[0]?.product?.imageUrl ? (
                     <img
-                      src={order.items[0].product.imageUrl}
-                      alt={order.items[0].product.name}
+                      src={order.orderItems[0].product.imageUrl}
+                      alt={order.orderItems[0].product.name}
                       className="w-12 h-12 object-cover rounded-lg"
                     />
                   ) : (
@@ -151,10 +148,9 @@ export default async function RecentOrders({ userId }: RecentOrdersProps) {
                       <StatusIcon className="w-3 h-3 mr-1" />
                       {status.label}
                     </div>
-                  </div>
-                  <p className="text-sm text-secondary-500">
-                    {order.buyer.name} • {order.items.length} item{order.items.length !== 1 ? 's' : ''}
-                  </p>                  <p className="text-xs text-secondary-400">
+                  </div>                  <p className="text-sm text-secondary-500">
+                    {order.buyer.name} • {order.orderItems.length} item{order.orderItems.length !== 1 ? 's' : ''}
+                  </p><p className="text-xs text-secondary-400">
                     {formatDistanceToNow(order.createdAt, { addSuffix: true })}
                   </p>
                 </div>

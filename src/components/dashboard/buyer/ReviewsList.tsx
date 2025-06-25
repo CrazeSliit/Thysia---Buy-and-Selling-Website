@@ -122,12 +122,12 @@ export default function ReviewsList() {
         <Card key={review.id} className="overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-start space-x-4">
-              <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">
-                <Image
+              <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">                <Image
                   src={review.product.imageUrl || '/placeholder-product.jpg'}
                   alt={review.product.name}
                   fill
                   className="object-cover"
+                  sizes="80px"
                 />
               </div>
               
