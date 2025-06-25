@@ -16,8 +16,7 @@ const productSchema = z.object({
 })
 
 // GET - Fetch all products for the authenticated seller
-export async function GET() {
-  try {
+export async function GET() {  try {
     const session = await getServerSession(authOptions)
     
     if (!session?.user) {
@@ -81,11 +80,11 @@ export async function POST(request: NextRequest) {
 
     if (session.user.role !== 'SELLER') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }    const body = await request.json()
-    console.log('Received product data:', JSON.stringify(body, null, 2))
-    
-    const validatedData = productSchema.parse(body)
+    }
 
+    const body = await request.json()
+    const validatedData = productSchema.parse(body)
+    
     // Get seller profile
     const sellerProfile = await prisma.sellerProfile.findUnique({
       where: { userId: session.user.id }
@@ -93,9 +92,6 @@ export async function POST(request: NextRequest) {
 
     if (!sellerProfile) {
       return NextResponse.json({ error: 'Seller profile not found' }, { status: 404 })
-    }    // Verify seller is verified
-    if (!sellerProfile.isVerified) {
-      return NextResponse.json({ error: 'Seller account must be verified to create products' }, { status: 403 })
     }
 
     // Get or create a default "General" category if no category is specified
@@ -135,13 +131,10 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true 
           }
-        }
-      }
+        }      }
     })
 
-    console.log('Product created successfully:', product.id)
-
-    return NextResponse.json({ 
+    return NextResponse.json({
       message: 'Product created successfully',
       product: {
         ...product,
@@ -152,7 +145,6 @@ export async function POST(request: NextRequest) {
     console.error('Error creating product:', error)
     
     if (error instanceof z.ZodError) {
-      console.error('Validation errors:', error.errors)
       return NextResponse.json(
         { error: 'Validation error', details: error.errors },
         { status: 400 }

@@ -19,6 +19,20 @@ export default function NewProductPage() {
     isFeatured: false
   });
 
+  // Helper function to validate and potentially correct image URLs
+  const validateImageUrl = (url: string): string => {
+    if (!url) return url;
+    
+    // Convert ImgBB share URLs to direct image URLs
+    if (url.includes('ibb.co/') && !url.includes('i.ibb.co/')) {
+      // This is a share URL, not a direct image URL
+      // Users should use the direct image URL instead
+      return url;
+    }
+    
+    return url;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -96,8 +110,7 @@ export default function NewProductPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Add New Product</h1>
             <p className="text-gray-600 mt-1">Create a new product for your store</p>
-          </div>
-        </div>
+          </div>        </div>
 
         {/* Form */}
         <div className="bg-white shadow rounded-lg">
@@ -172,13 +185,14 @@ export default function NewProductPage() {
                   placeholder="0"
                 />
               </div>
-            </div>
-
-            {/* Image URL */}
+            </div>            {/* Image URL */}
             <div>
               <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-2">
                 Product Image URL
               </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Enter a direct image URL (e.g., https://i.ibb.co/... or https://images.unsplash.com/...)
+              </p>
               <div className="flex">
                 <input
                   type="url"
@@ -187,7 +201,7 @@ export default function NewProductPage() {
                   value={formData.imageUrl}
                   onChange={handleChange}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://example.com/image.jpg"
+                  placeholder="https://i.ibb.co/... or https://images.unsplash.com/..."
                 />
                 <button
                   type="button"
@@ -196,15 +210,19 @@ export default function NewProductPage() {
                 >
                   <Upload className="h-5 w-5 text-gray-500" />
                 </button>
-              </div>
-              {formData.imageUrl && (
+              </div>{formData.imageUrl && (
                 <div className="mt-2">
                   <img
                     src={formData.imageUrl}
                     alt="Product preview"
-                    className="h-20 w-20 object-cover rounded-md"
+                    className="h-20 w-20 object-cover rounded-md border"
                     onError={(e) => {
-                      e.currentTarget.style.display = 'none';
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                    onLoad={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'block';
                     }}
                   />
                 </div>

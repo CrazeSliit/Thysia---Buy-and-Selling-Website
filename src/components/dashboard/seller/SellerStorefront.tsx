@@ -5,14 +5,12 @@ import { toast } from 'sonner'
 import { Save, User, Mail, Phone, MapPin, Calendar, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 
 interface SellerProfile {
   id: string
   businessName: string | null
   phone: string | null
   address: string | null
-  isVerified: boolean
   createdAt: string
   updatedAt: string
   user: {
@@ -180,12 +178,8 @@ export default function SellerStorefront() {
       {/* Profile Information */}
       <Card>
         <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="space-y-4">            <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900">Account Information</h3>
-              <Badge variant={profileData.profile.isVerified ? 'default' : 'destructive'}>
-                {profileData.profile.isVerified ? 'Verified' : 'Unverified'}
-              </Badge>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

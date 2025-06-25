@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { DollarSign, Package, ShoppingBag, TrendingUp, Plus, Eye } from 'lucide-react'
 import Link from 'next/link'
+import { prisma } from '@/lib/prisma'
 import RecentOrders from './RecentOrders'
 import ProductPerformance from './ProductPerformance'
 import SalesChart from './SalesChart'
@@ -30,24 +31,180 @@ function StatsLoading() {
 
 // Quick stats component
 async function QuickStats({ userId }: { userId: string }) {
-  // Fetch real data from API
+  // Fetch real data directly from database
   let sellerStats;
   try {
-    const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3002'}/api/seller/stats`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    // Get the seller profile
+    const sellerProfile = await prisma.sellerProfile.findUnique({
+      where: { userId },
+      select: { id: true }
     });
-    
-    if (response.ok) {
-      const data = await response.json();
-      sellerStats = data.stats;
-    } else {
-      throw new Error('Failed to fetch stats');
+
+    if (!sellerProfile) {
+      throw new Error('Seller profile not found');
     }
+
+    // Get current date for monthly calculations
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+    // Parallel queries for better performance
+    const [
+      totalProducts,
+      activeProducts,
+      totalOrderItems,
+      thisMonthOrderItems,
+      lastMonthOrderItems,
+      totalRevenue,
+      thisMonthRevenue,
+      lastMonthRevenue,
+    ] = await Promise.all([
+      // Total products count
+      prisma.product.count({
+        where: { sellerId: sellerProfile.id }
+      }),
+
+      // Active products count
+      prisma.product.count({
+        where: { 
+          sellerId: sellerProfile.id,
+          isActive: true 
+        }
+      }),
+
+      // Total order items sold
+      prisma.orderItem.aggregate({
+        where: {
+          product: { sellerId: sellerProfile.id }
+        },
+        _sum: { quantity: true }
+      }),
+
+      // This month order items
+      prisma.orderItem.aggregate({
+        where: {
+          product: { sellerId: sellerProfile.id },
+          order: {
+            createdAt: { gte: startOfMonth }
+          }
+        },
+        _sum: { quantity: true }
+      }),
+
+      // Last month order items
+      prisma.orderItem.aggregate({
+        where: {
+          product: { sellerId: sellerProfile.id },
+          order: {
+            createdAt: { 
+              gte: lastMonth,
+              lte: endOfLastMonth
+            }
+          }
+        },
+        _sum: { quantity: true }
+      }),
+
+      // Total revenue from delivered orders
+      prisma.orderItem.aggregate({
+        where: {
+          product: { sellerId: sellerProfile.id },
+          order: { status: 'DELIVERED' }
+        },
+        _sum: { price: true }
+      }),
+
+      // This month revenue
+      prisma.orderItem.aggregate({
+        where: {
+          product: { sellerId: sellerProfile.id },
+          order: {
+            status: 'DELIVERED',
+            createdAt: { gte: startOfMonth }
+          }
+        },
+        _sum: { price: true }
+      }),
+
+      // Last month revenue
+      prisma.orderItem.aggregate({
+        where: {
+          product: { sellerId: sellerProfile.id },
+          order: {
+            status: 'DELIVERED',
+            createdAt: { 
+              gte: lastMonth,
+              lte: endOfLastMonth
+            }
+          }
+        },
+        _sum: { price: true }
+      }),
+    ]);
+
+    // Calculate growth percentages
+    const calculateGrowth = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+
+    const thisMonthOrders = thisMonthOrderItems._sum.quantity || 0;
+    const lastMonthOrders = lastMonthOrderItems._sum.quantity || 0;
+    const ordersGrowth = calculateGrowth(thisMonthOrders, lastMonthOrders);
+
+    const currentRevenue = thisMonthRevenue._sum.price || 0;
+    const previousRevenue = lastMonthRevenue._sum.price || 0;
+    const revenueGrowth = calculateGrowth(currentRevenue, previousRevenue);
+
+    const totalItemsSold = totalOrderItems._sum.quantity || 0;
+    const itemsGrowth = calculateGrowth(thisMonthOrders, lastMonthOrders);
+
+    // Get total unique orders (not just order items)
+    const totalOrders = await prisma.order.count({
+      where: {
+        items: {
+          some: {
+            product: { sellerId: sellerProfile.id }
+          }
+        }
+      }
+    });
+
+    const thisMonthOrders_count = await prisma.order.count({
+      where: {
+        items: {
+          some: {
+            product: { sellerId: sellerProfile.id }
+          }
+        },
+        createdAt: { gte: startOfMonth }
+      }
+    });
+
+    sellerStats = {
+      totalRevenue: totalRevenue._sum.price || 0,
+      thisMonthRevenue: currentRevenue,
+      revenueGrowth: Math.round(revenueGrowth * 10) / 10,
+      
+      totalProducts,
+      activeProducts,
+      
+      totalOrders,
+      thisMonthOrders: thisMonthOrders_count,
+      orderCountGrowth: Math.round(ordersGrowth * 10) / 10,
+      
+      totalItemsSold,
+      thisMonthItemsSold: thisMonthOrders,
+      itemsGrowth: Math.round(itemsGrowth * 10) / 10,
+      
+      conversionRate: totalProducts > 0 ? (totalOrders / (totalProducts * 10)) * 100 : 0 // Mock calculation
+    };
+    
   } catch (error) {
     console.error('Error fetching seller stats:', error);
-    // Fallback to placeholder data if API fails
+    // Fallback to placeholder data if database fails
     sellerStats = {
       totalRevenue: 0,
       revenueGrowth: 0,
@@ -59,7 +216,6 @@ async function QuickStats({ userId }: { userId: string }) {
       itemsGrowth: 0
     };
   }
-
   const stats = [
     {
       title: 'Total Revenue',
@@ -73,7 +229,7 @@ async function QuickStats({ userId }: { userId: string }) {
     {
       title: 'Products Listed',
       value: sellerStats.totalProducts.toString(),
-      change: `${sellerStats.totalProducts} total`,
+      change: `${sellerStats.activeProducts} active`,
       changeType: 'neutral' as const,
       icon: Package,
       color: 'text-blue-600',

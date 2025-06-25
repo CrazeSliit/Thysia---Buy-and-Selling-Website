@@ -13,12 +13,8 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
-      },
-      async authorize(credentials) {
-        console.log("🔐 Authorize called with:", { email: credentials?.email, hasPassword: !!credentials?.password })
-        
+      },      async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.log("❌ Missing credentials")
           return null
         }
 
@@ -33,26 +29,19 @@ export const authOptions: NextAuthOptions = {
           }
         })
 
-        console.log("👤 User found:", !!user, user ? { id: user.id, email: user.email, role: user.role, isActive: user.isActive } : 'none')
-
         if (!user || !user.password) {
-          console.log("❌ User not found or no password")
           return null
         }
 
         const isPasswordValid = await compare(credentials.password, user.password)
-        console.log("🔑 Password valid:", isPasswordValid)
 
         if (!isPasswordValid) {
-          console.log("❌ Invalid password")
           return null
         }
 
         if (!user.isActive) {
-          console.log("❌ User account deactivated")
           throw new Error("Account has been deactivated. Please contact support.")
-        }        console.log("✅ Authorization successful");
-        return {
+        }        return {
           id: user.id,
           email: user.email,
           name: user.name,
@@ -74,12 +63,8 @@ export const authOptions: NextAuthOptions = {
         }
       }
     }),  ],
-  callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      console.log("🎫 JWT callback:", { hasUser: !!user, trigger, tokenSub: token.sub })
-      
+  callbacks: {    async jwt({ token, user, trigger, session }) {
       if (user) {
-        console.log("👤 Setting user data in token:", { id: user.id, role: user.role, isActive: user.isActive })
         token.role = user.role
         token.isActive = user.isActive
         token.buyerProfile = user.buyerProfile
@@ -106,13 +91,11 @@ export const authOptions: NextAuthOptions = {
       return session    }
   },
   pages: {
-    signIn: "/auth/signin",
-  },
+    signIn: "/auth/signin",  },
   events: {
     async signIn({ user, isNewUser }) {
       if (isNewUser) {
         // Send welcome notification or email
-        console.log(`New user signed up: ${user.email}`)
       }
     }
   }

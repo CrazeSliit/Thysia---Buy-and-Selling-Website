@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       email,
       password: hashedPassword,
       role,
-    }// Add role-specific profile data
+    }    // Add role-specific profile data
     switch (role) {
       case 'BUYER':
         userData.buyerProfile = { create: {} }
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         userData.sellerProfile = {
           create: {
             businessName: `${name}'s Store`,
-            isVerified: false, // Requires admin approval
+            isVerified: true, // Auto-verify new sellers
           }
         }
         break
