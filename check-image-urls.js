@@ -55,18 +55,28 @@ async function checkImageUrls() {
         imageUrl: true
       }
     });
-    });
 
-    console.log(`Found ${products.length} products with image URLs:`);
+    console.log(`Found ${categories.length} categories with unsplash.com URLs:`);
     
-    products.forEach(product => {
-      console.log(`- ${product.name}: ${product.imageUrl}`);
+    for (const category of categories) {
+      console.log(`- ${category.name}: ${category.imageUrl}`);
       
-      // Check for problematic URLs
-      if (product.imageUrl.includes('ibb.co/') && !product.imageUrl.includes('i.ibb.co/')) {
-        console.log(`  ⚠️  This appears to be a share URL, not a direct image URL`);
+      // If it's a photo page URL, convert it to direct image URL
+      if (category.imageUrl && category.imageUrl.includes('unsplash.com/photos/')) {
+        const photoId = category.imageUrl.split('/photos/')[1]?.split('-').pop();
+        if (photoId) {
+          const directUrl = `https://images.unsplash.com/photo-${photoId}?w=500`;
+          console.log(`  → Should be: ${directUrl}`);
+          
+          // Update the category with the correct URL
+          await prisma.category.update({
+            where: { id: category.id },
+            data: { imageUrl: directUrl }
+          });
+          console.log(`  ✅ Updated category: ${category.name}`);
+        }
       }
-    });
+    }
 
   } catch (error) {
     console.error('❌ Error checking image URLs:', error);
