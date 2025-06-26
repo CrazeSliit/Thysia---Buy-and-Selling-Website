@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "devtools": "react-devtools",
@@ -13,7 +13,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && next build",
+    "vercel-build": "node setup-env.js && prisma generate && next build",
     "deploy:prep": "node switch-db.js prod && prisma generate",
     "dev:prep": "node switch-db.js dev && prisma generate"
   },
