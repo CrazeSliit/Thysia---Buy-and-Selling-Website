@@ -27,7 +27,7 @@ async function getOrderForSeller(orderId: string, userId: string) {
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
-        items: {
+        orderItems: {
           some: {
             product: {
               sellerId: sellerProfile.id
@@ -43,7 +43,7 @@ async function getOrderForSeller(orderId: string, userId: string) {
             email: true
           }
         },
-        items: {
+        orderItems: {
           where: {
             product: {
               sellerId: sellerProfile.id
@@ -119,6 +119,23 @@ export default async function SellerOrderDetailsPage({ params }: SellerOrderDeta
           <SellerOrderDetails 
           order={{
             ...order,
+            total: order.totalAmount,
+            items: order.orderItems.map(item => ({
+              id: item.id,
+              quantity: item.quantity,
+              price: item.priceAtTime,
+              product: {
+                id: item.product.id,
+                name: item.product.name,
+                price: item.product.price,
+                imageUrl: item.product.imageUrl || '/placeholder-product.jpg',
+                category: {
+                  name: item.product.category.name
+                },
+                seller: item.product.seller
+              }
+            })),
+            buyer: order.buyer,
             createdAt: order.createdAt.toISOString(),
             updatedAt: order.updatedAt.toISOString(),
             delivery: order.delivery ? {

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const whereClause: any = {
-      items: {
+      orderItems: {
         some: {
           product: {
             sellerId: sellerProfile.id
