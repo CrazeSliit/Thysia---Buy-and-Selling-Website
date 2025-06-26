@@ -146,10 +146,8 @@ export async function GET(request: NextRequest) {
 
     const thisMonthOrders = thisMonthOrderItems._sum.quantity || 0;
     const lastMonthOrders = lastMonthOrderItems._sum.quantity || 0;
-    const ordersGrowth = calculateGrowth(thisMonthOrders, lastMonthOrders);
-
-    const currentRevenue = thisMonthRevenue._sum.price || 0;
-    const previousRevenue = lastMonthRevenue._sum.price || 0;
+    const ordersGrowth = calculateGrowth(thisMonthOrders, lastMonthOrders);    const currentRevenue = thisMonthRevenue._sum?.totalPrice || 0;
+    const previousRevenue = lastMonthRevenue._sum?.totalPrice || 0;
     const revenueGrowth = calculateGrowth(currentRevenue, previousRevenue);
 
     // Get total unique orders (not just order items)
@@ -196,7 +194,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       stats: {
-        totalRevenue: totalRevenue._sum.price || 0,
+        totalRevenue: totalRevenue._sum?.totalPrice || 0,
         thisMonthRevenue: currentRevenue,
         revenueGrowth: Math.round(revenueGrowth * 10) / 10,
         

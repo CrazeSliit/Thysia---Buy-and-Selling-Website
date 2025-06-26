@@ -12,10 +12,10 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -31,8 +31,30 @@ export default function SignInPage() {
       if (result?.error) {
         setError('Invalid email or password')
       } else {
+        // Get the updated session to determine the redirect URL
         const session = await getSession()
-        router.push(callbackUrl)
+        
+        let redirectUrl = '/dashboard'
+        if (session?.user?.role) {
+          switch (session.user.role) {
+            case 'ADMIN':
+              redirectUrl = '/dashboard/admin'
+              break
+            case 'SELLER':
+              redirectUrl = '/dashboard/seller'
+              break
+            case 'DRIVER':
+              redirectUrl = '/dashboard/driver'
+              break
+            case 'BUYER':
+              redirectUrl = '/dashboard/buyer'
+              break
+            default:
+              redirectUrl = '/dashboard'
+          }
+        }
+        
+        router.push(redirectUrl)
         router.refresh()
       }
     } catch (error) {

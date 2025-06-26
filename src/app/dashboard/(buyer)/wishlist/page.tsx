@@ -22,7 +22,7 @@ export default async function BuyerWishlistPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Wishlist</h1>
             <p className="text-gray-600 mt-1">
-              Products you&apos;ve saved for later
+              Products you've saved for later
             </p>
           </div>
           <div className="text-right">

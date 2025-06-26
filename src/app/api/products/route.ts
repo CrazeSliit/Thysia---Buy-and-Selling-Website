@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// GET - Fetch all active products (public endpoint)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '12')
-    const category = searchParams.get('category')
-    const search = searchParams.get('search')
+    const search = searchParams.get('search') || ''
+    const category = searchParams.get('category') || ''
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
 
@@ -19,10 +18,6 @@ export async function GET(request: NextRequest) {
       isActive: true
     }
 
-    if (category) {
-      where.categoryId = category
-    }
-
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -30,33 +25,30 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Get products with pagination
+    if (category) {
+      where.categoryId = category
+    }
+
+    // Get products with related data
     const [products, totalCount] = await Promise.all([
       prisma.product.findMany({
         where,
         include: {
           category: {
-            select: {
-              id: true,
-              name: true
-            }
+            select: { id: true, name: true }
           },
           seller: {
-            select: {
-              id: true,
-              businessName: true,
+            select: { 
+              id: true, 
+              businessName: true, 
               isVerified: true,
               user: {
-                select: {
-                  name: true
-                }
+                select: { name: true }
               }
             }
           },
           reviews: {
-            select: {
-              rating: true
-            }
+            select: { rating: true }
           },
           _count: {
             select: {
@@ -67,7 +59,7 @@ export async function GET(request: NextRequest) {
           }
         },
         orderBy: {
-          [sortBy]: sortOrder
+          [sortBy]: sortOrder as 'asc' | 'desc'
         },
         skip,
         take: limit
@@ -77,16 +69,15 @@ export async function GET(request: NextRequest) {
 
     // Calculate average ratings
     const productsWithRatings = products.map(product => {
-      const avgRating = product.reviews.length > 0 
+      const averageRating = product.reviews.length > 0 
         ? product.reviews.reduce((sum, review) => sum + review.rating, 0) / product.reviews.length
         : 0
 
       return {
         ...product,
-        averageRating: avgRating,
+        averageRating: parseFloat(averageRating.toFixed(1)),
         createdAt: product.createdAt.toISOString(),
-        updatedAt: product.updatedAt.toISOString(),
-        reviews: undefined // Remove reviews from response to reduce payload
+        updatedAt: product.updatedAt.toISOString()
       }
     })
 
@@ -98,12 +89,16 @@ export async function GET(request: NextRequest) {
         currentPage: page,
         totalPages,
         totalCount,
-        hasNext: page < totalPages,
-        hasPrev: page > 1
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1
       }
     })
+
   } catch (error) {
     console.error('Error fetching products:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

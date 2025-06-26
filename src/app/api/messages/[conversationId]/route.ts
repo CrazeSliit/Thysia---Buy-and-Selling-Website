@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 
 // Mock messages for specific conversation
 const mockConversationMessages = [
@@ -77,9 +76,12 @@ export async function GET(
 
     // Temporary: Use mock data instead of Prisma
     // const messages = await prisma.message.findMany({
-      const conversationId = params.conversationId
     
-    const messages = await prisma.message.findMany({
+    const conversationId = params.conversationId
+    const messages = mockConversationMessages.filter(m => 
+      (m.senderId === session.user.id && m.receiverId === conversationId) ||
+      (m.senderId === conversationId && m.receiverId === session.user.id)
+    )
       where: {
         OR: [
           {

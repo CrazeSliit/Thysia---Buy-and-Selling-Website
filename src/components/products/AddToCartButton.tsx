@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
-import { ShoppingCart, Heart, Loader2 } from 'lucide-react'
+import { ShoppingCart, Heart, Loader2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 
@@ -22,8 +23,25 @@ export default function AddToCartButton({
   const [loading, setLoading] = useState(false)
   const [addingToWishlist, setAddingToWishlist] = useState(false)
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  // Check if user is a buyer
+  const isBuyer = session?.user?.role === 'BUYER'
+  const isAuthenticated = status === 'authenticated'
+  const isLoading = status === 'loading'
 
   const addToCart = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to add items to cart')
+      router.push('/auth/signin?callbackUrl=/products')
+      return
+    }
+
+    if (!isBuyer) {
+      toast.error('Only buyers can purchase products')
+      return
+    }
+
     setLoading(true)
     try {
       const response = await fetch('/api/cart', {
@@ -41,6 +59,10 @@ export default function AddToCartButton({
         if (response.status === 401) {
           toast.error('Please sign in to add items to cart')
           router.push('/auth/signin?callbackUrl=/products')
+          return
+        }
+        if (response.status === 403) {
+          toast.error('Only buyers can purchase products')
           return
         }
         throw new Error('Failed to add item to cart')
@@ -68,6 +90,17 @@ export default function AddToCartButton({
   }
 
   const addToWishlist = async () => {
+    if (!isAuthenticated) {
+      toast.error('Please sign in to add items to wishlist')
+      router.push('/auth/signin?callbackUrl=/products')
+      return
+    }
+
+    if (!isBuyer) {
+      toast.error('Only buyers can add items to wishlist')
+      return
+    }
+
     setAddingToWishlist(true)
     try {
       const response = await fetch('/api/user/wishlist', {
@@ -82,6 +115,10 @@ export default function AddToCartButton({
         if (response.status === 401) {
           toast.error('Please sign in to add items to wishlist')
           router.push('/auth/signin?callbackUrl=/products')
+          return
+        }
+        if (response.status === 403) {
+          toast.error('Only buyers can add items to wishlist')
           return
         }
         if (response.status === 409) {
@@ -102,6 +139,53 @@ export default function AddToCartButton({
 
   const isDisabled = !isActive || stock === 0
 
+  // If loading session, show loading state
+  if (isLoading) {
+    return (
+      <div className={`flex items-center space-x-2 ${className}`}>
+        <Button disabled className="flex-1 h-9" size="sm">
+          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          Loading...
+        </Button>
+      </div>
+    )
+  }
+
+  // If not authenticated, show sign in button
+  if (!isAuthenticated) {
+    return (
+      <div className={`flex items-center space-x-2 ${className}`}>
+        <Button
+          onClick={() => router.push('/auth/signin?callbackUrl=/products')}
+          className="flex-1 h-9"
+          size="sm"
+        >
+          <User className="w-4 h-4 mr-2" />
+          Sign In to Purchase
+        </Button>
+      </div>
+    )
+  }
+
+  // If not a buyer, show info message
+  if (!isBuyer) {
+    const roleMessages = {
+      SELLER: 'Sellers cannot purchase products',
+      DRIVER: 'Drivers cannot purchase products', 
+      ADMIN: 'Admins cannot purchase products'
+    }
+    
+    return (
+      <div className={`flex items-center space-x-2 ${className}`}>
+        <Button disabled className="flex-1 h-9" size="sm" variant="outline">
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          {roleMessages[session?.user?.role as keyof typeof roleMessages] || 'Cannot purchase'}
+        </Button>
+      </div>
+    )
+  }
+
+  // For buyers, show normal cart functionality
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
       <Button

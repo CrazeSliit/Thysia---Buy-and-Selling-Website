@@ -59,8 +59,16 @@ export async function GET() {
     })
 
     const completedDeliveries = deliveryStats.find(stat => stat.status === 'DELIVERED')?._count.id || 0
-    const pendingDeliveries = deliveryStats.find(stat => stat.status === 'PENDING')?._count.id || 0
+    const pendingDeliveries = deliveryStats.find(stat => stat.status === 'PENDING' || stat.status === 'PENDING_PICKUP')?._count.id || 0
     const inProgressDeliveries = deliveryStats.find(stat => stat.status === 'OUT_FOR_DELIVERY')?._count.id || 0
+
+    // Also get available (unassigned) deliveries count
+    const availableDeliveries = await prisma.delivery.count({
+      where: {
+        driverId: null,
+        status: 'PENDING'
+      }
+    })
 
     return NextResponse.json({
       profile: {
@@ -76,7 +84,8 @@ export async function GET() {
         totalDeliveries: driverProfile._count.deliveries,
         completedDeliveries,
         pendingDeliveries,
-        inProgressDeliveries
+        inProgressDeliveries,
+        availableDeliveries
       }
     })
   } catch (error) {

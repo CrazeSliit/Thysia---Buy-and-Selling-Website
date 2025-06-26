@@ -1,77 +1,70 @@
-import { prisma } from '@/lib/prisma'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Package, MapPin, Clock, CheckCircle, XCircle } from 'lucide-react'
 
 interface PendingDeliveriesProps {
   userId: string
 }
 
-async function getPendingDeliveries(userId: string) {
-  try {
-    // Get the driver profile first
-    const driverProfile = await prisma.driverProfile.findUnique({
-      where: { userId },
-      select: { id: true }
-    })
-
-    if (!driverProfile) {
-      return []
+interface Delivery {
+  id: string
+  status: string
+  driverId: string | null
+  order: {
+    id: string
+    orderNumber: string
+    totalAmount: number
+    buyer: {
+      name: string
     }
-
-    // Get pending delivery requests (unassigned or assigned to this driver but not started)
-    const deliveries = await prisma.delivery.findMany({
-      where: {
-        OR: [
-          {
-            driverId: null, // Unassigned
-            status: 'PENDING'
-          },
-          {
-            driverId: driverProfile.id,
-            status: 'PENDING'
-          }
-        ]
-      },
-      include: {
-        order: {
-          include: {
-            buyer: {
-              select: {
-                name: true
-              }
-            },
-            items: {
-              include: {
-                product: {
-                  select: {
-                    name: true,
-                    seller: {
-                      select: {
-                        businessName: true
-                      }
-                    }
-                  }
-                }
-              },
-              take: 1
-            }
-          }
+    orderItems: Array<{
+      product: {
+        name: string
+        seller: {
+          businessName: string
         }
-      },
-      orderBy: {
-        createdAt: 'asc'
-      },
-      take: 5
-    })
+      }
+    }>
+  }
+}
 
-    return deliveries
+async function fetchPendingDeliveries(userId: string): Promise<Delivery[]> {
+  try {
+    const response = await fetch('/api/driver/pending-deliveries')
+    if (!response.ok) {
+      throw new Error('Failed to fetch deliveries')
+    }
+    return await response.json()
   } catch (error) {
     console.error('Error fetching pending deliveries:', error)
     return []
   }
 }
 
-export default async function PendingDeliveries({ userId }: PendingDeliveriesProps) {
-  const deliveries = await getPendingDeliveries(userId)
+export default function PendingDeliveries({ userId }: PendingDeliveriesProps) {
+  const [deliveries, setDeliveries] = useState<Delivery[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadDeliveries = async () => {
+      setLoading(true)
+      const data = await fetchPendingDeliveries(userId)
+      setDeliveries(data)
+      setLoading(false)
+    }
+    
+    loadDeliveries()
+  }, [userId])
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-2 text-secondary-500">Loading deliveries...</p>
+      </div>
+    )
+  }
 
   if (deliveries.length === 0) {
     return (
@@ -89,7 +82,7 @@ export default async function PendingDeliveries({ userId }: PendingDeliveriesPro
     <div className="p-6">
       <div className="space-y-4">
         {deliveries.map((delivery) => {
-          const firstItem = delivery.order.items[0]
+          const firstItem = delivery.order.orderItems[0]
           const isAssigned = delivery.driverId !== null
 
           return (
@@ -107,9 +100,8 @@ export default async function PendingDeliveries({ userId }: PendingDeliveriesPro
                   }`}>
                     {isAssigned ? 'Assigned' : 'Available'}
                   </span>
-                </div>
-                <div className="text-sm text-secondary-500">
-                  ${delivery.order.total.toFixed(2)}
+                </div>                <div className="text-sm text-secondary-500">
+                  ${delivery.order.totalAmount.toFixed(2)}
                 </div>
               </div>
 
@@ -118,16 +110,15 @@ export default async function PendingDeliveries({ userId }: PendingDeliveriesPro
                 <div className="flex items-center text-sm">
                   <Package className="w-4 h-4 text-secondary-400 mr-2" />
                   <span className="text-secondary-600">
-                    {delivery.order.buyer.name} • {delivery.order.items.length} item{delivery.order.items.length !== 1 ? 's' : ''}
+                    {delivery.order.buyer.name} • {delivery.order.orderItems.length} item{delivery.order.orderItems.length !== 1 ? 's' : ''}
                   </span>
                 </div>
                 
                 {firstItem && (
                   <div className="text-sm text-secondary-600 ml-6">
-                    {firstItem.product.name}
-                    {delivery.order.items.length > 1 && (
+                    {firstItem.product.name}                    {delivery.order.orderItems.length > 1 && (
                       <span className="text-secondary-500">
-                        {' '}+{delivery.order.items.length - 1} more
+                        {' '}+{delivery.order.orderItems.length - 1} more
                       </span>
                     )}
                   </div>

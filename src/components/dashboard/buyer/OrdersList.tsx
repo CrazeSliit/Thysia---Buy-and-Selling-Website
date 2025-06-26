@@ -8,12 +8,12 @@ import Link from 'next/link'
 interface Order {
   id: string
   status: string
-  total: number
+  totalAmount: number
   createdAt: string
-  items: Array<{
+  orderItems: Array<{
     id: string
     quantity: number
-    price: number
+    priceAtTime: number
     product: {
       id: string
       name: string
@@ -83,10 +83,9 @@ export default function OrdersList({ userId }: OrdersListProps) {
       setLoading(false)
     }
   }
-
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.items.some(item => item.product.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                         order.orderItems.some(item => item.product.name.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -190,13 +189,12 @@ export default function OrdersList({ userId }: OrdersListProps) {
                         <StatusIcon className="w-4 h-4 mr-2" />
                         {status.label}
                       </div>
-                    </div>
-                    <div className="text-right">
+                    </div>                    <div className="text-right">
                       <p className="text-lg font-bold text-secondary-900">
-                        ${order.total.toFixed(2)}
+                        ${order.totalAmount.toFixed(2)}
                       </p>
                       <p className="text-sm text-secondary-500">
-                        {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                        {order.orderItems.length} item{order.orderItems.length !== 1 ? 's' : ''}
                       </p>
                     </div>
                   </div>
@@ -205,7 +203,7 @@ export default function OrdersList({ userId }: OrdersListProps) {
                 {/* Order Items */}
                 <div className="p-6">
                   <div className="space-y-4">
-                    {order.items.map((item) => (
+                    {order.orderItems.map((item) => (
                       <div key={item.id} className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
                           {item.product.imageUrl ? (
@@ -223,14 +221,13 @@ export default function OrdersList({ userId }: OrdersListProps) {
                         <div className="flex-1">
                           <h4 className="text-sm font-medium text-secondary-900">
                             {item.product.name}
-                          </h4>
-                          <p className="text-sm text-secondary-500">
-                            Quantity: {item.quantity} • ${item.price.toFixed(2)} each
+                          </h4>                          <p className="text-sm text-secondary-500">
+                            Quantity: {item.quantity} • ${item.priceAtTime.toFixed(2)} each
                           </p>
                         </div>
                         <div className="flex-shrink-0">
                           <p className="text-sm font-medium text-secondary-900">
-                            ${(item.quantity * item.price).toFixed(2)}
+                            ${(item.quantity * item.priceAtTime).toFixed(2)}
                           </p>
                         </div>
                       </div>

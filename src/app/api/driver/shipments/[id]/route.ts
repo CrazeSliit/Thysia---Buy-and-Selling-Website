@@ -52,8 +52,7 @@ export async function GET(
                 name: true,
                 email: true
               }
-            },
-            items: {
+            },            orderItems: {
               include: {
                 product: {
                   select: {

@@ -35,7 +35,9 @@ const navigationConfig = {
     { href: '/dashboard/buyer/cart', label: 'Shopping Cart', icon: ShoppingCart },
     { href: '/dashboard/buyer/wishlist', label: 'Wishlist', icon: Heart },
     { href: '/dashboard/buyer/addresses', label: 'Addresses', icon: MapPin },
-   
+    { href: '/dashboard/buyer/reviews', label: 'My Reviews', icon: Star },
+    { href: '/dashboard/buyer/inbox', label: 'Messages', icon: MessageSquare },
+    { href: '/dashboard/buyer/settings', label: 'Settings', icon: Settings },
   ],
   SELLER: [
     { href: '/dashboard/seller', label: 'Overview', icon: Home },

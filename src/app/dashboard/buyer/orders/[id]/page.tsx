@@ -1,4 +1,4 @@
-import { redirect, notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -8,52 +8,6 @@ import OrderDetails from '@/components/dashboard/buyer/OrderDetails'
 interface OrderDetailsPageProps {
   params: {
     id: string
-  }
-}
-
-async function getOrder(orderId: string, userId: string) {
-  try {
-    const order = await prisma.order.findFirst({
-      where: {
-        id: orderId,
-        buyerId: userId,
-      },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                category: true,                seller: {
-                  select: {
-                    id: true,
-                    businessName: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        delivery: {
-          include: {
-            driver: {
-              select: {
-                id: true,                  user: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                vehicleType: true,
-              },
-            },
-          },
-        },
-      },
-    })
-
-    return order
-  } catch (error) {
-    console.error('Error fetching order:', error)
-    return null
   }
 }
 
@@ -68,10 +22,59 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
     redirect('/unauthorized')
   }
 
-  const order = await getOrder(params.id, session.user.id)
+  // Fetch the order details
+  const order = await prisma.order.findFirst({
+    where: {
+      id: params.id,
+      buyerId: session.user.id, // Ensure buyer can only view their own orders
+    },
+    include: {
+      orderItems: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+              category: {
+                select: {
+                  name: true
+                }
+              },
+              seller: {
+                select: {
+                  businessName: true
+                }
+              }
+            }
+          }
+        }
+      },
+      shippingAddress: true,
+      billingAddress: true,
+      delivery: {
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          driver: {
+            select: {
+              user: {
+                select: {
+                  name: true,
+                  email: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
 
   if (!order) {
-    notFound()
+    redirect('/dashboard/buyer/orders')
   }
 
   return (
@@ -79,25 +82,47 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
       <div className="space-y-6">
         <div className="border-b border-secondary-200 pb-4">
           <h1 className="text-2xl font-bold text-secondary-900">
-            Order #{order.id.slice(-8)}
+            Order Details
           </h1>
           <p className="mt-1 text-sm text-secondary-600">
-            Order details and tracking information
+            Order #{order.orderNumber}
           </p>
         </div>
-          <OrderDetails order={{
-          ...order,
+        
+        <OrderDetails order={{
+          id: order.id,
+          status: order.status,
+          total: order.totalAmount,
           createdAt: order.createdAt.toISOString(),
           updatedAt: order.updatedAt.toISOString(),
+          items: order.orderItems.map(item => ({
+            id: item.id,
+            quantity: item.quantity,
+            price: item.priceAtTime,
+            product: {
+              id: item.product.id,
+              name: item.product.name,
+              imageUrl: item.product.imageUrl || '/placeholder-product.jpg',
+              category: {
+                name: item.product.category?.name || 'Uncategorized'
+              },
+              seller: {
+                id: item.sellerId,
+                businessName: item.product.seller?.businessName || 'Unknown Seller'
+              }
+            }
+          })),
           delivery: order.delivery ? {
             id: order.delivery.id,
             status: order.delivery.status,
             driver: order.delivery.driver ? {
-              id: order.delivery.driver.id,
-              user: order.delivery.driver.user,
-              vehicleType: order.delivery.driver.vehicleType,
-            } : undefined,
-          } : undefined,
+              id: order.delivery.driver.user.email, // Using email as ID since we don't have driver profile ID
+              user: {
+                name: order.delivery.driver.user.name
+              },
+              vehicleType: null // We don't have vehicle type in our schema yet
+            } : undefined
+          } : null
         }} />
       </div>
     </DashboardLayout>

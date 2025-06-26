@@ -22,7 +22,7 @@ export default async function BuyerReviewsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Reviews</h1>
             <p className="text-gray-600 mt-1">
-              Reviews and ratings you&apos;ve submitted
+              Reviews and ratings you've submitted
             </p>
           </div>
           <div className="text-right">

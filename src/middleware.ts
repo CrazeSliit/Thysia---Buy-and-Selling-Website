@@ -4,9 +4,7 @@ import { NextResponse } from "next/server"
 export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl
-    const token = req.nextauth.token
-
-    // Public routes that don't require authentication
+    const token = req.nextauth.token    // Public routes that don't require authentication
     const publicRoutes = [
       "/",
       "/products",
@@ -14,6 +12,7 @@ export default withAuth(
       "/auth/signin",
       "/auth/signup",
       "/api/auth",
+      "/api/products", // Allow public product API access
     ]
 
     // Check if current path is public
@@ -101,8 +100,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
-     * - api/ (API routes should handle their own auth)
      */
-    "/((?!_next/static|_next/image|favicon.ico|public|api/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|api/webhooks).*)",
   ],
 }

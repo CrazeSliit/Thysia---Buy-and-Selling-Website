@@ -86,9 +86,24 @@ export const authOptions: NextAuthOptions = {
         session.user.isActive = token.isActive as boolean
         session.user.buyerProfile = token.buyerProfile as any
         session.user.sellerProfile = token.sellerProfile as any
-        session.user.driverProfile = token.driverProfile as any
+        session.user.driverProfile = token.driverProfile as any      }
+      return session
+    },
+    async redirect({ url, baseUrl }) {
+      // If user is signing in, redirect to their appropriate dashboard
+      if (url === baseUrl || url === baseUrl + '/') {
+        return `${baseUrl}/dashboard`
       }
-      return session    }
+      // If the url is relative, make it absolute
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`
+      }
+      // Allow callback URLs on the same origin
+      if (new URL(url).origin === baseUrl) {
+        return url
+      }
+      return `${baseUrl}/dashboard`
+    }
   },
   pages: {
     signIn: "/auth/signin",  },

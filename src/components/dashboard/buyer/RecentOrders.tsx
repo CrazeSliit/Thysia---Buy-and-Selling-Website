@@ -46,7 +46,8 @@ async function getRecentOrders(userId: string) {
     const orders = await prisma.order.findMany({
       where: {
         buyerId: userId,
-      },      include: {
+      },
+      include: {
         orderItems: {
           include: {
             product: {
@@ -92,7 +93,8 @@ export default async function RecentOrders({ userId }: RecentOrdersProps) {
 
   return (
     <div className="p-6">
-      <div className="space-y-4">        {orders.map((order) => {
+      <div className="space-y-4">
+        {orders.map((order) => {
           const status = statusConfig[order.status as keyof typeof statusConfig] || statusConfig.PENDING
           const StatusIcon = status.icon
           const firstItem = order.orderItems[0]

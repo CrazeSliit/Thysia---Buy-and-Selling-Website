@@ -125,18 +125,13 @@ export async function GET(request: NextRequest) {
 // POST - Create a new order (checkout process)
 export async function POST(request: NextRequest) {
   try {
-    console.log('📦 POST /api/orders - Starting order creation...')
-    
     const session = await getServerSession(authOptions)
-    console.log('🔐 Session:', session ? { user: session.user?.email, role: session.user?.role } : 'No session')
     
     if (!session?.user) {
-      console.log('❌ No session or user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     if (session.user.role !== 'BUYER') {
-      console.log('❌ User role is not BUYER:', session.user.role)
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -144,41 +139,38 @@ export async function POST(request: NextRequest) {
     const buyerProfile = await prisma.buyerProfile.findUnique({
       where: { userId: session.user.id }
     })
-    console.log('👤 Buyer profile:', buyerProfile ? { id: buyerProfile.id } : 'Not found')
 
     if (!buyerProfile) {
-      console.log('❌ Buyer profile not found for user:', session.user.id)
       return NextResponse.json({ error: 'Buyer profile not found' }, { status: 404 })
     }
 
     const body = await request.json()
-    console.log('📝 Request body:', JSON.stringify(body, null, 2))
     
     // Validate request body
     const validationResult = checkoutSchema.safeParse(body)
     if (!validationResult.success) {
-      console.log('❌ Validation failed:', validationResult.error.errors)
       return NextResponse.json(
         { error: 'Invalid request data', details: validationResult.error.errors },
         { status: 400 }
       )
-    }    console.log('✅ Validation passed')
-    const { cartItems, shippingAddressId, billingAddressId, paymentMethod } = validationResult.data
-    console.log('🔍 About to verify products...')
+    }
 
-    // Verify all products exist and are available
+    const { cartItems, shippingAddressId, billingAddressId, paymentMethod } = validationResult.data    // Verify all products exist and are available
     const productIds = cartItems.map(item => item.productId)
-    console.log('📦 Product IDs to lookup:', productIds)
     const products = await prisma.product.findMany({
       where: { 
         id: { in: productIds },
         isActive: true
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        sellerId: true,
         seller: {
           select: {
-            id: true,
-            userId: true  // We need the User ID for OrderItem
+            userId: true
           }
         }
       }
@@ -207,15 +199,30 @@ export async function POST(request: NextRequest) {
         buyerId: buyerProfile.id
       }
     })
-    console.log('📍 Shipping address lookup:', { shippingAddressId, buyerProfileId: buyerProfile.id, found: !!shippingAddress })
 
     if (!shippingAddress) {
-      console.log('❌ Shipping address not found or does not belong to buyer')
       return NextResponse.json(
         { error: 'Invalid shipping address' },
         { status: 400 }
       )
-    }// Calculate totals
+    }
+
+    // If billing address is provided, verify it too
+    if (billingAddressId && billingAddressId !== shippingAddressId) {
+      const billingAddress = await prisma.address.findFirst({
+        where: {
+          id: billingAddressId,
+          buyerId: buyerProfile.id
+        }
+      })
+
+      if (!billingAddress) {
+        return NextResponse.json(
+          { error: 'Invalid billing address' },
+          { status: 400 }
+        )
+      }
+    }    // Calculate totals
     let subtotal = 0
     const orderItemsData = cartItems.map(cartItem => {
       const product = products.find(p => p.id === cartItem.productId)!
@@ -227,28 +234,25 @@ export async function POST(request: NextRequest) {
         quantity: cartItem.quantity,
         priceAtTime: product.price,
         totalPrice: itemTotal,
-        sellerId: product.seller.userId  // Use User ID, not SellerProfile ID
+        sellerId: product.seller.userId // Use the seller's User ID, not SellerProfile ID
       }
     })
 
     const taxRate = 0.08 // 8% tax rate
     const shippingCost = subtotal > 50 ? 0 : 9.99 // Free shipping over $50
     const taxAmount = subtotal * taxRate
-    const totalAmount = subtotal + taxAmount + shippingCost    // Generate order number
-    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
+    const totalAmount = subtotal + taxAmount + shippingCost
 
-    console.log('📋 Order creation data:', {
+    // Generate order number
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`    // Debug logging
+    console.log('Creating order with data:', {
       orderNumber,
       buyerId: session.user.id,
-      subtotal,
-      taxAmount,
-      shippingCost,
-      totalAmount,
       shippingAddressId,
       billingAddressId: billingAddressId || shippingAddressId,
-      orderItemsCount: orderItemsData.length
+      orderItemsData,
+      buyerProfile: buyerProfile.id
     })
-    console.log('📦 Order items data:', orderItemsData)
 
     // Create order in transaction
     const order = await prisma.$transaction(async (tx) => {
@@ -256,7 +260,7 @@ export async function POST(request: NextRequest) {
       const newOrder = await tx.order.create({
         data: {
           orderNumber,
-          buyerId: session.user.id, // Use User ID, not BuyerProfile ID
+          buyerId: session.user.id, // Use User ID for Order relation
           status: 'PENDING',
           subtotal,
           taxAmount,
@@ -296,13 +300,20 @@ export async function POST(request: NextRequest) {
             }
           }
         })
-      }
-
-      // Clear cart items
+      }      // Clear cart items (using BuyerProfile ID for CartItem relation)
       await tx.cartItem.deleteMany({
         where: {
           buyerId: buyerProfile.id,
           productId: { in: productIds }
+        }
+      })
+
+      // Create delivery record for the order
+      await tx.delivery.create({
+        data: {
+          orderId: newOrder.id,
+          status: 'PENDING'
+          // driverId is null initially (unassigned)
         }
       })
 
@@ -340,10 +351,9 @@ export async function POST(request: NextRequest) {
       },
       message: 'Order placed successfully!'
     }, { status: 201 })
+
   } catch (error) {
-    console.error('💥 Error creating order:', error)
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error')
-    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('Error creating order:', error)
     return NextResponse.json(
       { error: 'Failed to create order' },
       { status: 500 }

@@ -1,52 +1,40 @@
-const { PrismaClient } = require('@prisma/client')
-
-const prisma = new PrismaClient()
+const fetch = require('node-fetch');
 
 async function testOrderAPI() {
   try {
-    console.log('Testing Order API requirements...')
+    // First, let me create a simple test order
+    const checkoutData = {
+      cartItems: [
+        {
+          productId: "cmcbkof1w000ia1hr2pd2mkla", // iPhone 15 Pro
+          quantity: 1,
+          price: 999.99
+        }
+      ],
+      shippingAddressId: "cmcbkof2b000qa1hrx8hocxe5",
+      billingAddressId: "cmcbkof2b000qa1hrx8hocxe5",
+      paymentMethod: "CREDIT_CARD"
+    };
+
+    console.log('Making request to order API...');
     
-    // Check if we have a buyer user
-    const buyers = await prisma.user.findMany({
-      where: { role: 'BUYER' },
-      include: {
-        buyerProfile: true
-      }
-    })
-    console.log('Buyers found:', buyers.length)
-    if (buyers.length > 0) {
-      console.log('First buyer:', buyers[0])
-    }
+    const response = await fetch('http://localhost:3000/api/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Note: In a real test, we'd need to include proper session cookies
+      },
+      body: JSON.stringify(checkoutData)
+    });
+
+    console.log('Response status:', response.status);
     
-    // Check if we have addresses
-    const addresses = await prisma.address.findMany()
-    console.log('Addresses found:', addresses.length)
-    if (addresses.length > 0) {
-      console.log('First address:', addresses[0])
-    }
-    
-    // Check if we have cart items
-    const cartItems = await prisma.cartItem.findMany({
-      include: {
-        product: true
-      }
-    })
-    console.log('Cart items found:', cartItems.length)
-    if (cartItems.length > 0) {
-      console.log('First cart item:', cartItems[0])
-    }
-    
-    // Check products
-    const products = await prisma.product.findMany({
-      where: { isActive: true }
-    })
-    console.log('Active products found:', products.length)
-    
+    const responseData = await response.text();
+    console.log('Response data:', responseData);
+
   } catch (error) {
-    console.error('Error:', error)
-  } finally {
-    await prisma.$disconnect()
+    console.error('Error:', error);
   }
 }
 
-testOrderAPI()
+testOrderAPI();

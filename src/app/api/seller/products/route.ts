@@ -92,7 +92,10 @@ export async function POST(request: NextRequest) {
 
     if (!sellerProfile) {
       return NextResponse.json({ error: 'Seller profile not found' }, { status: 404 })
-    }    // Get or create a default "General" category if no category is specified
+    }
+
+    // Get or create a default "General" category if no category is specified
+    let categoryId: string;
     
     // Check if a "General" category exists, create if not
     let defaultCategory = await prisma.category.findFirst({
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const categoryId = defaultCategory.id;    // Create new product
+    categoryId = defaultCategory.id;    // Create new product
     const product = await prisma.product.create({
       data: {
         name: validatedData.name,

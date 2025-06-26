@@ -30,11 +30,19 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
-    const skip = (page - 1) * limit
-
-    // Build where clause
+    const skip = (page - 1) * limit    // Build where clause
     const whereClause: any = {
-      driverId: driverProfile.id
+      OR: [
+        {
+          // Show deliveries assigned to this driver
+          driverId: driverProfile.id
+        },
+        {
+          // Show unassigned deliveries that are still PENDING (available for pickup)
+          driverId: null,
+          status: 'PENDING'
+        }
+      ]
     }
 
     if (status) {
@@ -45,8 +53,7 @@ export async function GET(request: NextRequest) {
     const [deliveries, totalCount] = await Promise.all([
       prisma.delivery.findMany({
         where: whereClause,
-        include: {
-          order: {
+        include: {          order: {
             include: {
               buyer: {
                 select: {
@@ -55,7 +62,7 @@ export async function GET(request: NextRequest) {
                   email: true
                 }
               },
-              items: {
+              orderItems: {
                 include: {
                   product: {
                     select: {
@@ -71,7 +78,8 @@ export async function GET(request: NextRequest) {
                     }
                   }
                 }
-              }
+              },
+              shippingAddress: true
             }
           }
         },
