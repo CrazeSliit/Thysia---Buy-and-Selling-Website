@@ -1,70 +1,80 @@
-'use client'
-
-import { useState, useEffect } from 'react'
+import { prisma } from '@/lib/prisma'
 import { Package, MapPin, Clock, CheckCircle, XCircle } from 'lucide-react'
 
 interface PendingDeliveriesProps {
   userId: string
 }
 
-interface Delivery {
-  id: string
-  status: string
-  driverId: string | null
-  order: {
-    id: string
-    orderNumber: string
-    totalAmount: number
-    buyer: {
-      name: string
-    }
-    orderItems: Array<{
-      product: {
-        name: string
-        seller: {
-          businessName: string
-        }
-      }
-    }>
-  }
-}
-
-async function fetchPendingDeliveries(userId: string): Promise<Delivery[]> {
+async function getPendingDeliveries(userId: string) {
   try {
-    const response = await fetch('/api/driver/pending-deliveries')
-    if (!response.ok) {
-      throw new Error('Failed to fetch deliveries')
+    // Get the driver profile first
+    const driverProfile = await prisma.driverProfile.findUnique({
+      where: { userId },
+      select: { id: true }
+    })
+
+    if (!driverProfile) {
+      return []
     }
-    return await response.json()
+
+    // Get pending delivery requests (unassigned or assigned to this driver but not started)
+    const deliveries = await prisma.delivery.findMany({
+      where: {
+        OR: [
+          {
+            driverId: null, // Unassigned
+            status: 'PENDING'
+          },
+          {
+            driverId: driverProfile.id,
+            status: 'PENDING'
+          }
+        ]
+      },
+      include: {        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            totalAmount: true,
+            createdAt: true,
+            buyer: {
+              select: {
+                name: true
+              }
+            },
+            orderItems: {
+              include: {
+                product: {
+                  select: {
+                    name: true,
+                    seller: {
+                      select: {
+                        businessName: true
+                      }
+                    }
+                  }
+                }
+              },
+              take: 1
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'asc'
+      },
+      take: 5
+    })
+
+    return deliveries
   } catch (error) {
     console.error('Error fetching pending deliveries:', error)
     return []
   }
 }
 
-export default function PendingDeliveries({ userId }: PendingDeliveriesProps) {
-  const [deliveries, setDeliveries] = useState<Delivery[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const loadDeliveries = async () => {
-      setLoading(true)
-      const data = await fetchPendingDeliveries(userId)
-      setDeliveries(data)
-      setLoading(false)
-    }
-    
-    loadDeliveries()
-  }, [userId])
-
-  if (loading) {
-    return (
-      <div className="p-6 text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-        <p className="mt-2 text-secondary-500">Loading deliveries...</p>
-      </div>
-    )
-  }
+export default async function PendingDeliveries({ userId }: PendingDeliveriesProps) {
+  const deliveries = await getPendingDeliveries(userId)
 
   if (deliveries.length === 0) {
     return (

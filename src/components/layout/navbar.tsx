@@ -60,15 +60,12 @@ export function Navbar() {
             
             {session ? (
               <>
-                {/* Only show cart for buyers */}
-                {session.user.role === 'BUYER' && (
-                  <Link href="/cart" className="relative text-secondary-700 hover:text-primary-600 transition-colors">
-                    <ShoppingCart className="w-5 h-5" />
-                    <span className="absolute -top-2 -right-2 bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      0
-                    </span>
-                  </Link>
-                )}
+                <Link href="/cart" className="relative text-secondary-700 hover:text-primary-600 transition-colors">
+                  <ShoppingCart className="w-5 h-5" />
+                  <span className="absolute -top-2 -right-2 bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    0
+                  </span>
+                </Link>
                 
                 <div className="relative group">
                   <button className="flex items-center space-x-1 text-secondary-700 hover:text-primary-600 transition-colors">
@@ -83,7 +80,7 @@ export function Navbar() {
                     >
                       Dashboard
                     </Link>
-
+            
                     <button
                       onClick={() => signOut()}
                       className="block w-full text-left px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
@@ -151,16 +148,13 @@ export function Navbar() {
               
               {session ? (
                 <>
-                  {/* Only show cart for buyers in mobile menu */}
-                  {session.user.role === 'BUYER' && (
-                    <Link
-                      href="/cart"
-                      className="block px-3 py-2 text-secondary-700 hover:text-primary-600"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Cart
-                    </Link>
-                  )}
+                  <Link
+                    href="/cart"
+                    className="block px-3 py-2 text-secondary-700 hover:text-primary-600"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Cart
+                  </Link>
                   <Link
                     href={getRoleBasedDashboardLink()}
                     className="block px-3 py-2 text-secondary-700 hover:text-primary-600"
