@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
               }
             }
           },
-          items: {
+          orderItems: {
             where: {
               product: {
                 sellerId: sellerProfile.id
