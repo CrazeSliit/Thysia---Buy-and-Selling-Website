@@ -25,9 +25,13 @@ const loadEnvFile = (filename) => {
   return false;
 };
 
-// Load environment files in order
-loadEnvFile('.env.local');
-loadEnvFile('.env');
+// Load environment files in order (prioritize .env.local)
+const loadedLocal = loadEnvFile('.env.local');
+const loadedEnv = loadEnvFile('.env');
+
+if (!loadedLocal && !loadedEnv) {
+  console.log('⚠️ No .env files found, checking process.env directly...');
+}
 
 // Check if we're in a CI/build environment
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
@@ -37,8 +41,12 @@ if (isProduction) {
   
   // Check if DATABASE_URL is set and is PostgreSQL
   const dbUrl = process.env.DATABASE_URL;
+  console.log('🔍 Checking DATABASE_URL...');
+  console.log('Environment keys found:', Object.keys(process.env).filter(k => k.includes('DATABASE')));
+  
   if (!dbUrl) {
     console.error('❌ DATABASE_URL environment variable is not set!');
+    console.log('Available env vars:', Object.keys(process.env).slice(0, 10));
     console.log('Please set DATABASE_URL in your Vercel environment variables.');
     process.exit(1);
   }
