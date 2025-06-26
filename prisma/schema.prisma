@@ -1,11 +1,11 @@
-// Simple SQLite schema for immediate testing
+// Schema with conditional database provider
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource sqlitedb {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // User model (simplified)
