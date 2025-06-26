@@ -3,7 +3,6 @@ import { ShoppingBag, Heart, Star, Package } from 'lucide-react'
 import Link from 'next/link'
 import RecentOrders from './RecentOrders'
 import QuickActions from './QuickActions'
-import PersonalizedRecommendations from './PersonalizedRecommendations'
 
 interface BuyerOverviewProps {
   userId: string
@@ -96,34 +95,22 @@ export default function BuyerOverview({ userId }: BuyerOverviewProps) {
       {/* Quick Actions */}
       <QuickActions />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Orders */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-secondary-900">Recent Orders</h2>
-              <Link 
-                href="/dashboard/buyer/orders"
-                className="text-sm text-primary-600 hover:text-primary-500"
-              >
-                View all
-              </Link>
-            </div>
+      {/* Recent Orders */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="p-6 border-b">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-secondary-900">Recent Orders</h2>
+            <Link 
+              href="/dashboard/buyer/orders"
+              className="text-sm text-primary-600 hover:text-primary-500"
+            >
+              View all
+            </Link>
           </div>
-          <Suspense fallback={<div className="p-6">Loading orders...</div>}>
-            <RecentOrders userId={userId} />
-          </Suspense>
         </div>
-
-        {/* Personalized Recommendations */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-6 border-b">
-            <h2 className="text-lg font-semibold text-secondary-900">Recommended for You</h2>
-          </div>
-          <Suspense fallback={<div className="p-6">Loading recommendations...</div>}>
-            <PersonalizedRecommendations userId={userId} />
-          </Suspense>
-        </div>
+        <Suspense fallback={<div className="p-6">Loading orders...</div>}>
+          <RecentOrders userId={userId} />
+        </Suspense>
       </div>
     </div>
   )
