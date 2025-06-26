@@ -1,0 +1,293 @@
+// Production schema for PostgreSQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  role      String   @default("BUYER")
+  isActive  Boolean  @default(true)
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Profile relations
+  buyerProfile  BuyerProfile?
+  sellerProfile SellerProfile?
+  driverProfile DriverProfile?
+  
+  // Relations
+  orders           Order[]
+  orderItems       OrderItem[]
+  reviews          Review[]
+  notifications    Notification[]
+  adminLogs        AdminLog[]
+  messagesSent     Message[] @relation("MessagesSent")
+  messagesReceived Message[] @relation("MessagesReceived")
+
+  @@map("users")
+}
+
+model BuyerProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  addresses     Address[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+
+  @@map("buyer_profiles")
+}
+
+model SellerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName String?
+  phone        String?
+  address      String?
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  products Product[]
+
+  @@map("seller_profiles")
+}
+
+model DriverProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone         String?
+  vehicleType   String?
+  licenseNumber String?
+  isVerified    Boolean  @default(false)
+  isAvailable   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  deliveries Delivery[]
+  
+  @@map("driver_profiles")
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  buyerId     String
+  type        String   @default("HOME")
+  firstName   String
+  lastName    String
+  company     String?
+  address1    String
+  address2    String?
+  city        String
+  state       String
+  zipCode     String
+  country     String   @default("US")
+  phone       String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  buyer                 BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  shippingOrders        Order[]      @relation("OrderShippingAddress")
+  billingOrders         Order[]      @relation("OrderBillingAddress")
+
+  @@map("addresses")
+}
+
+model CartItem {
+  id          String   @id @default(cuid())
+  buyerId     String
+  productId   String
+  quantity    Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  buyer       BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, productId])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  id          String   @id @default(cuid())
+  buyerId     String
+  productId   String
+  createdAt   DateTime @default(now())
+
+  buyer       BuyerProfile @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([buyerId, productId])
+  @@map("wishlist_items")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  name         String
+  description  String
+  price        Float
+  imageUrl     String
+  categoryId   String
+  sellerId     String
+  isActive     Boolean  @default(true)
+  isFeatured   Boolean  @default(false)
+  stock        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  category      Category      @relation(fields: [categoryId], references: [id])
+  seller        SellerProfile @relation(fields: [sellerId], references: [id])
+  orderItems    OrderItem[]
+  reviews       Review[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id                String   @id @default(cuid())
+  orderNumber       String   @unique
+  buyerId           String
+  status            String   @default("PENDING")
+  paymentStatus     String   @default("PENDING")
+  paymentMethod     String   @default("CREDIT_CARD")
+  
+  subtotal          Float
+  taxAmount         Float    @default(0)
+  shippingCost      Float    @default(0)
+  totalAmount       Float
+  
+  shippingAddressId String
+  billingAddressId  String
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  buyer             User        @relation(fields: [buyerId], references: [id])
+  orderItems        OrderItem[]
+  shippingAddress   Address     @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddress    Address     @relation("OrderBillingAddress", fields: [billingAddressId], references: [id])
+  delivery          Delivery?
+  messages          Message[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  productId     String
+  sellerId      String
+  quantity      Int
+  priceAtTime   Float
+  totalPrice    Float
+  createdAt     DateTime @default(now())
+
+  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product @relation(fields: [productId], references: [id])
+  seller        User    @relation(fields: [sellerId], references: [id])
+
+  @@map("order_items")
+}
+
+model Delivery {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  driverId   String?
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  order      Order         @relation(fields: [orderId], references: [id])
+  driver     DriverProfile? @relation(fields: [driverId], references: [id])
+
+  @@map("deliveries")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@map("reviews")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  createdAt DateTime @default(now())
+
+  admin     User @relation(fields: [adminId], references: [id])
+
+  @@map("admin_logs")
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  subject    String
+  content    String
+  isRead     Boolean  @default(false)
+  orderId    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  sender     User     @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("MessagesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
+}
