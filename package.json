@@ -12,8 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && next build",
+    "postinstall": "prisma generate --no-engine",
+    "vercel-build": "prisma generate --no-engine && next build",
     "deploy:prep": "node switch-db.js prod && prisma generate",
     "dev:prep": "node switch-db.js dev && prisma generate"
   },

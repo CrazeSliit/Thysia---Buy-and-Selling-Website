@@ -2,6 +2,19 @@
   "functions": {
     "app/**/*.js": {
       "maxDuration": 10
+    },
+    "app/**/*.ts": {
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "NEXTAUTH_SECRET": "@nextauth_secret",
+    "NEXTAUTH_URL": "@nextauth_url"
+  },
+  "build": {
+    "env": {
+      "SKIP_ENV_VALIDATION": "true"
     }
   }
 }
