@@ -1,5 +1,6 @@
 # Thysia E-commerce Marketplace
 
+
 A comprehensive full-stack e-commerce marketplace built with Next.js 14, TypeScript, Prisma, and NextAuth.js.
 
 ## 🚀 Features
