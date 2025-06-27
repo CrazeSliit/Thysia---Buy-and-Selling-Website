@@ -46,11 +46,27 @@ Ensure these environment variables are set in your deployment platform:
 
 ### 3. Environment Variables
 Set in Vercel Dashboard > Settings > Environment Variables:
-```
-DATABASE_URL=your-postgresql-url
-NEXTAUTH_SECRET=your-secret-key
-NEXTAUTH_URL=https://your-app.vercel.app
-```
+
+**Important:** Add these directly in the Vercel dashboard, not in vercel.json
+
+| Variable | Value | Environment |
+|----------|-------|-------------|
+| `DATABASE_URL` | Your PostgreSQL connection string | Production, Preview, Development |
+| `NEXTAUTH_SECRET` | Your secret key (generate with `openssl rand -base64 32`) | Production, Preview, Development |
+| `NEXTAUTH_URL` | `https://your-app.vercel.app` | Production, Preview |
+| `NEXTAUTH_URL` | `http://localhost:3000` | Development |
+
+**Optional Variables:**
+| Variable | Description | Environment |
+|----------|-------------|-------------|
+| `GOOGLE_CLIENT_ID` | For Google OAuth | All |
+| `GOOGLE_CLIENT_SECRET` | For Google OAuth | All |
+| `STRIPE_PUBLIC_KEY` | For payments | All |
+| `STRIPE_SECRET_KEY` | For payments | All |
+| `CLOUDINARY_CLOUD_NAME` | For image storage | All |
+| `CLOUDINARY_API_KEY` | For image storage | All |
+| `CLOUDINARY_API_SECRET` | For image storage | All |
+| `CRON_SECRET` | For securing cron endpoints | All |
 
 ### 4. Deploy
 - [ ] Click "Deploy" in Vercel
